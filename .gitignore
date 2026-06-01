@@ -11,7 +11,5 @@ venv/
 # Claude 本地配置
 .claude/
 
-# 生成的数据与产物(由 data_gen.py / train.py 重新生成)
-data/processed/*.csv
-models/
-reports/
+# 注:data/ models/ reports/ 下的训练数据与产物**纳入**版本控制(用户要求全部上传)。
+# 若产物体积变大(如大模型权重),可在此按需忽略具体文件。
