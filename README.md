@@ -87,3 +87,4 @@ src/model.py     LSTM 定义 + 训练/推理
 src/train.py     端到端训练、验证、评估、保存
 requirements.txt
 ```
+
