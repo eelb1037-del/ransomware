@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Claude 本地配置
+.claude/
+
+# 生成的数据与产物(由 data_gen.py / train.py 重新生成)
+data/processed/*.csv
+models/
+reports/
