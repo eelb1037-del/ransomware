@@ -55,10 +55,12 @@ ransomware            # 标签 0 良性 / 1 勒索
 真实 ARM 核心通常只有 **6 个**通用 PMU 计数器,同时数更多需内核多路复用(有误差)。
 `data.COUNTER_SUBSETS` 预设两档,用 `--counters` 切换,模拟探针可并发采集的数量:
 
-| 子集 | 计数器 |
-|------|--------|
-| **6**(免多路复用) | `cpu_cycles` `inst_retired` `inst_spec` `crypto_spec` `l1d_cache_refill` `st_spec` |
-| **12**(多路复用可达,全集) | 6 个 + `ase_spec` `l1d_cache` `ll_cache_miss` `ld_spec` `br_retired` `br_mis_pred` |
+| 子集 | 计数器 | 详细说明 |
+|------|--------|------|
+| **6**(免多路复用) | `cpu_cycles` `inst_retired` `inst_spec` `crypto_spec` `l1d_cache_refill` `st_spec` | [docs/counters_6.md](docs/counters_6.md) |
+| **12**(多路复用可达,全集) | 6 个 + `ase_spec` `l1d_cache` `ll_cache_miss` `ld_spec` `br_retired` `br_mis_pred` | [docs/counters_12.md](docs/counters_12.md) |
+
+> 每档的**完整计数器清单、构建出的特征、处理流程、表现**分别见上表链接的独立文档。
 
 ## 运行
 
