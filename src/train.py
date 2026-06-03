@@ -134,8 +134,8 @@ def main():
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--outdir", default=os.path.join(root, "reports"))
     ap.add_argument("--modeldir", default=os.path.join(root, "models"))
-    ap.add_argument("--counters", default="16",
-                    help="PMU 计数器子集: 6 / 12 / 16(见 data.COUNTER_SUBSETS)")
+    ap.add_argument("--counters", default="12",
+                    help="PMU 计数器子集: 6 / 12(见 data.COUNTER_SUBSETS)")
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)
     os.makedirs(args.modeldir, exist_ok=True)

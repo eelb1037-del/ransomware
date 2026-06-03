@@ -14,9 +14,8 @@ import pandas as pd
 
 PMU_COUNTERS = [
     "cpu_cycles", "inst_retired", "inst_spec", "l1d_cache", "l1d_cache_refill",
-    "l2d_cache_refill", "ll_cache_miss", "mem_access", "ld_spec", "st_spec",
-    "br_retired", "br_mis_pred", "crypto_spec", "ase_spec", "dp_spec",
-    "stall_backend",
+    "ll_cache_miss", "ld_spec", "st_spec", "br_retired", "br_mis_pred",
+    "crypto_spec", "ase_spec",
 ]
 
 # 预设子集:模拟硬件可并发采集的计数器数量
@@ -26,12 +25,8 @@ COUNTER_SUBSETS = {
     #   l1d_refill -> 访存压力(MPKI); st_spec -> 写回占比
     "6": ["cpu_cycles", "inst_retired", "inst_spec", "crypto_spec",
           "l1d_cache_refill", "st_spec"],
-    # 12 个:多路复用可达,补齐 SIMD、load、分支、LLC、L1 总量
-    "12": ["cpu_cycles", "inst_retired", "inst_spec", "crypto_spec", "ase_spec",
-           "l1d_cache", "l1d_cache_refill", "ll_cache_miss", "ld_spec",
-           "st_spec", "br_retired", "br_mis_pred"],
-    # 16 个:全集
-    "16": list(PMU_COUNTERS),
+    # 12 个:多路复用可达,补齐 SIMD、load、分支、LLC、L1 总量(即全集)
+    "12": list(PMU_COUNTERS),
 }
 
 # 每个衍生特征 -> (构建函数, 依赖的原始计数器)。构建函数入参为列字典 col。
