@@ -16,13 +16,13 @@
 | 行为 | 硬件后果 | PMU 事件 |
 |------|---------|----------|
 | 跑 AES/ChaCha 加密 | 加密扩展 / SIMD 指令暴增 | `crypto_spec`(0x77)、`ase_spec`(0x74) |
-| 流式遍历海量文件 | 各级缓存未命中升高 | `l1d_cache_refill`、`l2d_cache_refill`、`ll_cache_miss`、`mem_access` |
+| 流式遍历海量文件 | 各级缓存未命中升高 | `l1d_cache`、`l1d_cache_refill`、`ll_cache_miss` |
 | 读明文 / 写密文 | load/store 构成偏移 | `ld_spec`(0x70)、`st_spec`(0x71) |
-| (归一化基准) | IPC / 占比分母 / 分支与停顿 | `cpu_cycles` `inst_retired` `inst_spec` `br_retired` `br_mis_pred` `dp_spec` `stall_backend` `l1d_cache` |
+| (归一化基准) | IPC / 占比分母 / 分支 | `cpu_cycles` `inst_retired` `inst_spec` `br_retired` `br_mis_pred` |
 
-共 **16 个 ARMv8-A 架构事件**。⚠️ `0x77` 等是 ARM 架构标准编号;Apple M 系列用私有
-PMU 事件、编号语义不同且 `crypto_spec` 不一定暴露,真实采集前需用 `perf list` 等确认
-芯片实际支持的事件。
+共 **12 个 ARMv8-A 架构事件**(即 `--counters 12` 全集)。⚠️ `0x77` 等是 ARM 架构标准
+编号;Apple M 系列用私有 PMU 事件、编号语义不同且 `crypto_spec` 不一定暴露,真实采集
+前需用 `perf list` 等确认芯片实际支持的事件。
 
 ## 数据 schema
 
@@ -31,8 +31,8 @@ PMU 事件、编号语义不同且 `crypto_spec` 不一定暴露,真实采集前
 ```
 timestamp, pid,
 cpu_cycles, inst_retired, inst_spec, l1d_cache, l1d_cache_refill,
-l2d_cache_refill, ll_cache_miss, mem_access, ld_spec, st_spec,
-br_retired, br_mis_pred, crypto_spec, ase_spec, dp_spec, stall_backend,
+ll_cache_miss, ld_spec, st_spec, br_retired, br_mis_pred,
+crypto_spec, ase_spec,
 ransomware            # 标签 0 良性 / 1 勒索
 ```
 
@@ -50,16 +50,15 @@ ransomware            # 标签 0 良性 / 1 勒索
    末步隐状态,验证集 AUC 早停)+ Logistic 元学习器堆叠 `[P_xgb, P_lstm]`。
 5. **评估**:验证集选最大化 F1 的阈值,测试集报告 ROC-AUC / PR-AUC / F1 / 精确率 / 召回率。
 
-## 计数器子集(6 / 12 / 16)
+## 计数器子集(6 / 12)
 
 真实 ARM 核心通常只有 **6 个**通用 PMU 计数器,同时数更多需内核多路复用(有误差)。
-`data.COUNTER_SUBSETS` 预设三档,用 `--counters` 切换,模拟探针可并发采集的数量:
+`data.COUNTER_SUBSETS` 预设两档,用 `--counters` 切换,模拟探针可并发采集的数量:
 
 | 子集 | 计数器 |
 |------|--------|
 | **6**(免多路复用) | `cpu_cycles` `inst_retired` `inst_spec` `crypto_spec` `l1d_cache_refill` `st_spec` |
-| **12**(多路复用可达) | 6 个 + `ase_spec` `l1d_cache` `ll_cache_miss` `ld_spec` `br_retired` `br_mis_pred` |
-| **16**(全集) | 全部 16 个 |
+| **12**(多路复用可达,全集) | 6 个 + `ase_spec` `l1d_cache` `ll_cache_miss` `ld_spec` `br_retired` `br_mis_pred` |
 
 ## 运行
 
@@ -70,12 +69,12 @@ pip install -r requirements.txt
 
 cd src
 python3 data_gen.py                 # 生成合成 PMU 数据 -> data/processed/dataset.csv
-python3 train.py                    # 训练 + 验证(默认 16 计数器全集)
+python3 train.py                    # 训练 + 验证(默认 12 计数器全集)
 python3 train.py --counters 6       # 只用 6 个计数器
-python3 compare_counters.py         # 6/12/16 三档原型对比
+python3 compare_counters.py         # 6/12 两档原型对比
 ```
 
-## 结果:6 / 12 / 16 计数器对比(测试集 241 窗口,含 22 正例)
+## 结果:6 / 12 计数器对比(测试集 241 窗口,含 22 正例)
 
 同一份加难合成数据(8126 行 / 1200 执行流,其中约 25% 良性进程也做合法加密/SIMD
 以增加难度),唯一变量是可用计数器数。**Hybrid 测试集:**
@@ -84,13 +83,11 @@ python3 compare_counters.py         # 6/12/16 三档原型对比
 |:---:|:---:|---:|---:|---:|---:|---:|
 | **6** | 10 | 0.987 | 0.865 | 0.800 | 0.667 | 1.000 |
 | **12** | 21 | 0.995 | 0.973 | 0.840 | 0.750 | 0.955 |
-| **16** | 26 | 0.996 | 0.970 | 0.933 | 0.913 | 0.955 |
 
 - **6 个**:高召回(漏报为零)但精确率仅 0.67——只有 `crypto_spec` 一个加密指纹,
   分不开“勒索加密 vs 备份/TLS 合法加密”,误报高,适合做初筛。
-- **12 个**:PR-AUC 跳到 0.97(性价比甜点);补入 SIMD、LLC 未命中、分支误预测后能
-  区分恶意与合法加密。
-- **16 个**:精确率最优(0.913);多出的 L2/访存密度/后端停顿提供更全上下文。
+- **12 个**:PR-AUC 跳到 0.97,精确率与 PR-AUC 全面更优;补入 SIMD、LLC 未命中、
+  分支误预测后能区分恶意与合法加密,是推荐配置。
 
 > ⚠️ 指标偏高源于**合成数据**,证明的是“特征+模型流水线随计数器增减合理涨跌”,
 > **不是真实检测率**。6 个具体选哪几个为先验挑选;真实场景建议用真实数据做计数器
@@ -98,8 +95,8 @@ python3 compare_counters.py         # 6/12/16 三档原型对比
 
 ## 产物
 
-- `reports/metrics.json` — 默认 16 计数器的完整测试集指标
-- `reports/counter_comparison.json` — 6/12/16 三档对比
+- `reports/metrics.json` — 默认 12 计数器的完整测试集指标
+- `reports/counter_comparison.json` — 6/12 两档对比
 - `reports/roc.png` / `pr.png` / `confusion_hybrid.png` / `xgb_importance.png`
 - `models/xgb.json` / `lstm.pt` / `preproc.pkl`(标准化器、元学习器、阈值)
 
@@ -110,6 +107,6 @@ src/data_gen.py          合成 PMU 事件数据生成
 src/data.py              依赖感知特征工程 + 窗口化 + 计数器子集
 src/model.py             LSTM 定义 + 训练/推理
 src/train.py             端到端训练、验证、评估、保存(--counters 开关)
-src/compare_counters.py  6/12/16 计数器子集原型对比
+src/compare_counters.py  6/12 计数器子集原型对比
 requirements.txt
 ```
