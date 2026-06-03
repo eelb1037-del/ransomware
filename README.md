@@ -16,23 +16,25 @@
 | 行为 | 硬件后果 | PMU 事件 |
 |------|---------|----------|
 | 跑 AES/ChaCha 加密 | 加密扩展 / SIMD 指令暴增 | `crypto_spec`(0x77)、`ase_spec`(0x74) |
-| 流式遍历海量文件 | 各级缓存未命中升高 | `l1d_cache`、`l1d_cache_refill`、`ll_cache_miss` |
+| 流式遍历海量文件 | 各级缓存未命中升高 | `l1d_cache`、`l1d_cache_refill`、`l2d_cache_refill`、`ll_cache_miss` |
 | 读明文 / 写密文 | load/store 构成偏移 | `ld_spec`(0x70)、`st_spec`(0x71) |
 | (归一化基准) | IPC / 占比分母 / 分支 | `cpu_cycles` `inst_retired` `inst_spec` `br_retired` `br_mis_pred` |
 
-共 **12 个 ARMv8-A 架构事件**(即 `--counters 12` 全集)。⚠️ `0x77` 等是 ARM 架构标准
-编号;Apple M 系列用私有 PMU 事件、编号语义不同且 `crypto_spec` 不一定暴露,真实采集
-前需用 `perf list` 等确认芯片实际支持的事件。
+共 **13 个信号 = `cpu_cycles`(专用周期计数器 PMCCNTR)+ 12 个通用事件**(`--counters 12`
+全集)。`cpu_cycles` 走专用通道,不占 ARM 核心通常仅 6 个的通用计数器名额。
+⚠️ `0x77` 等是 ARM 架构标准编号;Apple M 系列用私有 PMU 事件、编号语义不同且
+`crypto_spec` 不一定暴露,真实采集前需用 `perf list` 等确认芯片实际支持的事件。
 
 ## 数据 schema
 
-每行 = 某执行流(pid)在一个采样区间内的 **PMU 事件增量计数**:
+每行 = 某执行流(pid)在一个采样区间内的 **PMU 事件增量计数**(13 列):
 
 ```
 timestamp, pid,
-cpu_cycles, inst_retired, inst_spec, l1d_cache, l1d_cache_refill,
-ll_cache_miss, ld_spec, st_spec, br_retired, br_mis_pred,
-crypto_spec, ase_spec,
+cpu_cycles,                                          # 专用周期计数器
+inst_retired, inst_spec, l1d_cache, l1d_cache_refill,
+l2d_cache_refill, ll_cache_miss, ld_spec, st_spec,
+br_retired, br_mis_pred, crypto_spec, ase_spec,      # 12 个通用事件
 ransomware            # 标签 0 良性 / 1 勒索
 ```
 
@@ -52,13 +54,14 @@ ransomware            # 标签 0 良性 / 1 勒索
 
 ## 计数器子集(6 / 12)
 
-真实 ARM 核心通常只有 **6 个**通用 PMU 计数器,同时数更多需内核多路复用(有误差)。
-`data.COUNTER_SUBSETS` 预设两档,用 `--counters` 切换,模拟探针可并发采集的数量:
+`cpu_cycles` 走专用周期计数器(PMCCNTR),不占通用名额;ARM 核心通常有 **6 个**通用
+计数器,同时数更多需内核多路复用(有误差)。`data.COUNTER_SUBSETS` 预设两档,用
+`--counters` 切换,模拟探针可并发采集的预算:
 
-| 子集 | 计数器 | 详细说明 |
-|------|--------|------|
-| **6**(免多路复用) | `cpu_cycles` `inst_retired` `inst_spec` `crypto_spec` `l1d_cache_refill` `st_spec` | [docs/counters_6.md](docs/counters_6.md) |
-| **12**(多路复用可达,全集) | 6 个 + `ase_spec` `l1d_cache` `ll_cache_miss` `ld_spec` `br_retired` `br_mis_pred` | [docs/counters_12.md](docs/counters_12.md) |
+| 子集 | = cpu_cycles(专用)+ 通用事件 | 详细说明 |
+|------|------|------|
+| **6**(免多路复用,7 信号) | + `inst_retired` `inst_spec` `crypto_spec` `ase_spec` `l1d_cache_refill` `st_spec` | [docs/counters_6.md](docs/counters_6.md) |
+| **12**(多路复用,13 信号,全集) | 6 档 + `l1d_cache` `l2d_cache_refill` `ll_cache_miss` `ld_spec` `br_retired` `br_mis_pred` | [docs/counters_12.md](docs/counters_12.md) |
 
 > 每档的**完整计数器清单、构建出的特征、处理流程、表现**分别见上表链接的独立文档。
 
@@ -81,15 +84,15 @@ python3 compare_counters.py         # 6/12 两档原型对比
 同一份加难合成数据(8126 行 / 1200 执行流,其中约 25% 良性进程也做合法加密/SIMD
 以增加难度),唯一变量是可用计数器数。**Hybrid 测试集:**
 
-| 计数器 | 衍生特征 | ROC-AUC | PR-AUC | F1 | 精确率 | 召回率 |
+| 档位(信号数) | 衍生特征 | ROC-AUC | PR-AUC | F1 | 精确率 | 召回率 |
 |:---:|:---:|---:|---:|---:|---:|---:|
-| **6** | 10 | 0.987 | 0.865 | 0.800 | 0.667 | 1.000 |
-| **12** | 21 | 0.995 | 0.973 | 0.840 | 0.750 | 0.955 |
+| **6**(7 信号) | 13 | 0.989 | 0.889 | 0.772 | 0.629 | 1.000 |
+| **12**(13 信号) | 23 | 0.9996 | 0.996 | 0.933 | 0.913 | 0.955 |
 
-- **6 个**:高召回(漏报为零)但精确率仅 0.67——只有 `crypto_spec` 一个加密指纹,
-  分不开“勒索加密 vs 备份/TLS 合法加密”,误报高,适合做初筛。
-- **12 个**:PR-AUC 跳到 0.97,精确率与 PR-AUC 全面更优;补入 SIMD、LLC 未命中、
-  分支误预测后能区分恶意与合法加密,是推荐配置。
+- **6 档**(cpu_cycles + 6 通用):高召回(漏报为零)但精确率仅 0.63——虽含 crypto+ase
+  两个加密指纹,但缺 LLC/分支上下文,难分“勒索加密 vs 备份/TLS 合法加密”,适合初筛。
+- **12 档**(cpu_cycles + 12 通用):PR-AUC 0.996、精确率 0.913,全面更优;补入 LLC 未命中、
+  L2 层级、分支误预测、load 后能区分恶意与合法加密,是推荐配置。
 
 > ⚠️ 指标偏高源于**合成数据**,证明的是“特征+模型流水线随计数器增减合理涨跌”,
 > **不是真实检测率**。6 个具体选哪几个为先验挑选;真实场景建议用真实数据做计数器

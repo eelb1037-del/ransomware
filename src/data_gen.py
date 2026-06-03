@@ -28,10 +28,13 @@ import pandas as pd
 #   mem_access=0x13 ld_spec=0x70 st_spec=0x71 br_retired=0x21
 #   br_mis_pred=0x10 crypto_spec=0x77 ase_spec=0x74 dp_spec=0x73
 #   stall_backend=0x24
+# cpu_cycles 走专用周期计数器(PMCCNTR),不占 6 个通用计数器名额。
+# 其余 12 个为通用可编程事件(PMEVCNTRn)。共 13 列输出。
 PMU_COUNTERS = [
-    "cpu_cycles", "inst_retired", "inst_spec", "l1d_cache", "l1d_cache_refill",
-    "ll_cache_miss", "ld_spec", "st_spec", "br_retired", "br_mis_pred",
-    "crypto_spec", "ase_spec",
+    "cpu_cycles",                                          # 专用周期计数器
+    "inst_retired", "inst_spec", "l1d_cache", "l1d_cache_refill",
+    "l2d_cache_refill", "ll_cache_miss", "ld_spec", "st_spec",
+    "br_retired", "br_mis_pred", "crypto_spec", "ase_spec",  # 12 个通用事件
 ]
 
 
@@ -81,8 +84,8 @@ def _gen_interval(rng, profile, ramp):
     stall_backend = cycles * np.clip(profile["stall"] + ramp * 0.05
                                      + rng.normal(0, 0.04), 0.0, 0.9)
 
-    # l2d_cache_refill / mem_access / dp_spec / stall_backend 仅作中间量,不输出
-    vals = [cycles, inst, spec, l1d_cache, l1d_cache_refill,
+    # mem_access / dp_spec / stall_backend 仅作中间量,不输出
+    vals = [cycles, inst, spec, l1d_cache, l1d_cache_refill, l2d_cache_refill,
             ll_cache_miss, ld_spec, st_spec, br_retired, br_mis,
             crypto_spec, ase_spec]
     return [max(0, int(v)) for v in vals]

@@ -12,20 +12,22 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+# cpu_cycles 走专用周期计数器(PMCCNTR),不占 6 个通用名额;其余为通用事件。
 PMU_COUNTERS = [
-    "cpu_cycles", "inst_retired", "inst_spec", "l1d_cache", "l1d_cache_refill",
-    "ll_cache_miss", "ld_spec", "st_spec", "br_retired", "br_mis_pred",
-    "crypto_spec", "ase_spec",
+    "cpu_cycles",                                          # 专用周期计数器
+    "inst_retired", "inst_spec", "l1d_cache", "l1d_cache_refill",
+    "l2d_cache_refill", "ll_cache_miss", "ld_spec", "st_spec",
+    "br_retired", "br_mis_pred", "crypto_spec", "ase_spec",  # 12 个通用事件
 ]
 
-# 预设子集:模拟硬件可并发采集的计数器数量
+# 预设子集 = cpu_cycles(专用) + N 个通用事件,模拟硬件并发采集预算:
 COUNTER_SUBSETS = {
-    # 6 个:ARM 核心常见的通用计数器上限,无需内核多路复用
-    #   cycles+inst -> IPC; inst_spec -> 占比分母; crypto -> 加密指纹;
-    #   l1d_refill -> 访存压力(MPKI); st_spec -> 写回占比
-    "6": ["cpu_cycles", "inst_retired", "inst_spec", "crypto_spec",
+    # "6": cpu_cycles 专用 + 6 个通用(免多路复用,ARM 通用计数器常见上限)
+    #   inst_retired/inst_spec -> IPC 与占比分母; crypto_spec+ase_spec -> 加密指纹;
+    #   l1d_cache_refill -> 访存压力; st_spec -> 写回占比
+    "6": ["cpu_cycles", "inst_retired", "inst_spec", "crypto_spec", "ase_spec",
           "l1d_cache_refill", "st_spec"],
-    # 12 个:多路复用可达,补齐 SIMD、load、分支、LLC、L1 总量(即全集)
+    # "12": cpu_cycles 专用 + 12 个通用(全集),需多路复用
     "12": list(PMU_COUNTERS),
 }
 
