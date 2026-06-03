@@ -1,4 +1,4 @@
-"""对比不同 PMU 计数器子集(6 / 12 / 16)的检测原型表现。
+"""对比不同 PMU 计数器子集(6 / 12)的检测原型表现。
 
 公平性:同一份底层合成数据(物理行为一致)、同一切分、同一超参,唯一变量是
 “探针可并发采集的计数器数量” available。每个子集都跑完整 XGBoost+LSTM+stacking。
@@ -78,7 +78,7 @@ def main():
     print(f"数据 {len(df_raw)} 行 / {df_raw['pid'].nunique()} 执行流  device={device}\n")
 
     summary = {}
-    for key in ["6", "12", "16"]:
+    for key in ["6", "12"]:
         avail = data_mod.COUNTER_SUBSETS[key]
         print(f"=== 计数器子集 {key} ({len(avail)} 个) ===")
         r = run_subset(df_raw, avail, win=32, stride=16, epochs=40,
@@ -95,7 +95,7 @@ def main():
     print("================== 汇总 (Hybrid 测试集) ==================")
     print(f"{'计数器':>6} {'特征数':>6} {'ROC-AUC':>9} {'PR-AUC':>9} "
           f"{'F1':>8} {'Prec':>8} {'Recall':>8}")
-    for key in ["6", "12", "16"]:
+    for key in ["6", "12"]:
         h = summary[key]["results"]["Hybrid"]
         print(f"{key:>6} {summary[key]['n_features']:>6} {h['roc_auc']:>9.4f} "
               f"{h['pr_auc']:>9.4f} {h['f1']:>8.4f} {h['precision']:>8.4f} "

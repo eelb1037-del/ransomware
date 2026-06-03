@@ -30,9 +30,8 @@ import pandas as pd
 #   stall_backend=0x24
 PMU_COUNTERS = [
     "cpu_cycles", "inst_retired", "inst_spec", "l1d_cache", "l1d_cache_refill",
-    "l2d_cache_refill", "ll_cache_miss", "mem_access", "ld_spec", "st_spec",
-    "br_retired", "br_mis_pred", "crypto_spec", "ase_spec", "dp_spec",
-    "stall_backend",
+    "ll_cache_miss", "ld_spec", "st_spec", "br_retired", "br_mis_pred",
+    "crypto_spec", "ase_spec",
 ]
 
 
@@ -82,9 +81,10 @@ def _gen_interval(rng, profile, ramp):
     stall_backend = cycles * np.clip(profile["stall"] + ramp * 0.05
                                      + rng.normal(0, 0.04), 0.0, 0.9)
 
-    vals = [cycles, inst, spec, l1d_cache, l1d_cache_refill, l2d_cache_refill,
-            ll_cache_miss, mem_access, ld_spec, st_spec, br_retired, br_mis,
-            crypto_spec, ase_spec, dp_spec, stall_backend]
+    # l2d_cache_refill / mem_access / dp_spec / stall_backend 仅作中间量,不输出
+    vals = [cycles, inst, spec, l1d_cache, l1d_cache_refill,
+            ll_cache_miss, ld_spec, st_spec, br_retired, br_mis,
+            crypto_spec, ase_spec]
     return [max(0, int(v)) for v in vals]
 
 

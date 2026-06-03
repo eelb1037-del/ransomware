@@ -76,15 +76,15 @@
       "cpu_cycles",
       "inst_retired",
       "inst_spec",
-      "crypto_spec",
-      "ase_spec",
       "l1d_cache",
       "l1d_cache_refill",
       "ll_cache_miss",
       "ld_spec",
       "st_spec",
       "br_retired",
-      "br_mis_pred"
+      "br_mis_pred",
+      "crypto_spec",
+      "ase_spec"
     ],
     "n_features": 21,
     "n_test": 241,
@@ -140,88 +140,6 @@
           [
             212,
             7
-          ],
-          [
-            1,
-            21
-          ]
-        ]
-      }
-    }
-  },
-  "16": {
-    "counters": [
-      "cpu_cycles",
-      "inst_retired",
-      "inst_spec",
-      "l1d_cache",
-      "l1d_cache_refill",
-      "l2d_cache_refill",
-      "ll_cache_miss",
-      "mem_access",
-      "ld_spec",
-      "st_spec",
-      "br_retired",
-      "br_mis_pred",
-      "crypto_spec",
-      "ase_spec",
-      "dp_spec",
-      "stall_backend"
-    ],
-    "n_features": 26,
-    "n_test": 241,
-    "pos_test": 22,
-    "results": {
-      "XGBoost": {
-        "roc_auc": 0.9995848899958488,
-        "pr_auc": 0.9945454545454546,
-        "f1": 0.9361702127659575,
-        "precision": 0.88,
-        "recall": 1.0,
-        "accuracy": 0.9875518672199171,
-        "threshold": 0.4741448760032654,
-        "confusion_matrix": [
-          [
-            216,
-            3
-          ],
-          [
-            0,
-            22
-          ]
-        ]
-      },
-      "LSTM": {
-        "roc_auc": 0.9956413449564134,
-        "pr_auc": 0.969158676668558,
-        "f1": 0.9333333333333333,
-        "precision": 0.9130434782608695,
-        "recall": 0.9545454545454546,
-        "accuracy": 0.9875518672199171,
-        "threshold": 0.4568748474121094,
-        "confusion_matrix": [
-          [
-            217,
-            2
-          ],
-          [
-            1,
-            21
-          ]
-        ]
-      },
-      "Hybrid": {
-        "roc_auc": 0.995848899958489,
-        "pr_auc": 0.9699094274193087,
-        "f1": 0.9333333333333333,
-        "precision": 0.9130434782608695,
-        "recall": 0.9545454545454546,
-        "accuracy": 0.9875518672199171,
-        "threshold": 0.5768695963364731,
-        "confusion_matrix": [
-          [
-            217,
-            2
           ],
           [
             1,
