@@ -92,20 +92,37 @@ def _gen_interval(rng, profile, ramp):
 
 
 def _benign_profile(rng):
-    # 约 25% 良性进程是“类加密”负载(备份压缩/TLS/媒体编解码),会用到加密/SIMD
-    # 指令并产生可观访存——使单一 crypto 信号不再是充分判据,任务更接近真实。
-    cryptoish = rng.random() < 0.25
-    return {
+    """良性进程分三类真实负载,作为勒索软件的“干扰项”:
+      - normal  (~65%):浏览器/办公,加密压缩都低;
+      - crypto  (~20%):TLS/HTTPS/磁盘加密/备份加密 —— crypto+ase 高,但**不全盘
+                         遍历**,故 LLC 未命中不高(与勒索的关键区别);
+      - compress(~15%):zip/gzip/媒体编码 —— ase(SIMD)高、访存中等,但 crypto 低。
+    勒索软件 = 加密 + 全盘流式遍历(LLC 未命中高),据此可与上述合法负载区分。
+    """
+    r = rng.random()
+    kind = "normal" if r < 0.65 else ("crypto" if r < 0.85 else "compress")
+    base = {
         "cyc_mu": rng.uniform(16, 19), "ipc": rng.uniform(0.8, 2.2),
-        "crypto": rng.uniform(0.05, 0.18) if cryptoish else rng.uniform(0.0, 0.03),
-        "ase": rng.uniform(0.08, 0.22) if cryptoish else rng.uniform(0.0, 0.10),
+        "crypto": rng.uniform(0.0, 0.03), "ase": rng.uniform(0.0, 0.10),
         "ld": rng.uniform(0.18, 0.32), "st": rng.uniform(0.06, 0.18),
-        "mem_pi": rng.uniform(0.2, 0.5) if cryptoish else rng.uniform(0.15, 0.4),
-        "l1miss": rng.uniform(0.02, 0.10) if cryptoish else rng.uniform(0.01, 0.06),
-        "l2frac": rng.uniform(0.1, 0.45), "llfrac": rng.uniform(0.05, 0.35),
+        "mem_pi": rng.uniform(0.15, 0.4), "l1miss": rng.uniform(0.01, 0.06),
+        "l2frac": rng.uniform(0.1, 0.45), "llfrac": rng.uniform(0.05, 0.30),
         "br_pi": rng.uniform(0.12, 0.22), "br_mis": rng.uniform(0.02, 0.08),
         "stall": rng.uniform(0.1, 0.4),
     }
+    if kind == "crypto":          # 合法加密:加密指纹高,但缓存局部性好(不全盘遍历)
+        base["crypto"] = rng.uniform(0.10, 0.22)
+        base["ase"] = rng.uniform(0.10, 0.22)
+        base["l1miss"] = rng.uniform(0.01, 0.05)   # 关键:LLC/L1 未命中保持低
+        base["llfrac"] = rng.uniform(0.03, 0.15)
+    elif kind == "compress":      # 合法压缩:SIMD 高、访存中等,但 crypto 低
+        base["crypto"] = rng.uniform(0.0, 0.04)
+        base["ase"] = rng.uniform(0.12, 0.28)
+        base["mem_pi"] = rng.uniform(0.25, 0.5)
+        base["l1miss"] = rng.uniform(0.03, 0.10)
+        base["br_mis"] = rng.uniform(0.04, 0.12)   # 压缩分支较难预测
+    base["kind"] = kind
+    return base
 
 
 def _ransom_profile(rng):
