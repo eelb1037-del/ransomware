@@ -38,6 +38,9 @@ br_retired, br_mis_pred, crypto_spec, ase_spec,      # 12 个通用事件
 ransomware            # 标签 0 良性 / 1 勒索
 ```
 
+> 数据集**整体构成(良性 4 类 + 勒索)与训练/验证/测试切分**详见
+> [docs/dataset.md](docs/dataset.md)。
+
 ## 方法
 
 1. **特征工程**(`src/data.py`,**依赖感知**):每个衍生特征声明所需的原始计数器,
