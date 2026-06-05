@@ -92,15 +92,25 @@ def _gen_interval(rng, profile, ramp):
 
 
 def _benign_profile(rng):
-    """良性进程分三类真实负载,作为勒索软件的“干扰项”:
-      - normal  (~65%):浏览器/办公,加密压缩都低;
-      - crypto  (~20%):TLS/HTTPS/磁盘加密/备份加密 —— crypto+ase 高,但**不全盘
-                         遍历**,故 LLC 未命中不高(与勒索的关键区别);
-      - compress(~15%):zip/gzip/媒体编码 —— ase(SIMD)高、访存中等,但 crypto 低。
-    勒索软件 = 加密 + 全盘流式遍历(LLC 未命中高),据此可与上述合法负载区分。
+    """良性进程分四类真实负载,作为勒索软件的“干扰项”:
+      - normal   (~55%):浏览器/办公,加密压缩都低;
+      - crypto   (~18%):TLS/磁盘加密 —— crypto+ase 高,但不全盘遍历(LLC 低);
+      - compress (~12%):zip/媒体编码 —— SIMD 高、访存中等,但 crypto 低;
+      - encbackup(~15%):合法加密备份/全盘加密初始化 —— **最难**:加密 + 全盘遍历
+                          都高,与勒索在两核心维度重叠,仅靠**节奏**(平稳长流 vs
+                          突发脉冲)区分。
+    勒索软件 = 加密 + 全盘遍历 + **突发节奏**(ramp 脉冲),后者是与 encbackup 的关键差异。
     """
     r = rng.random()
-    kind = "normal" if r < 0.65 else ("crypto" if r < 0.85 else "compress")
+    # normal 55% / crypto 18% / compress 12% / encbackup 15%
+    if r < 0.55:
+        kind = "normal"
+    elif r < 0.73:
+        kind = "crypto"
+    elif r < 0.85:
+        kind = "compress"
+    else:
+        kind = "encbackup"
     base = {
         "cyc_mu": rng.uniform(16, 19), "ipc": rng.uniform(0.8, 2.2),
         "crypto": rng.uniform(0.0, 0.03), "ase": rng.uniform(0.0, 0.10),
@@ -113,7 +123,7 @@ def _benign_profile(rng):
     if kind == "crypto":          # 合法加密:加密指纹高,但缓存局部性好(不全盘遍历)
         base["crypto"] = rng.uniform(0.10, 0.22)
         base["ase"] = rng.uniform(0.10, 0.22)
-        base["l1miss"] = rng.uniform(0.01, 0.05)   # 关键:LLC/L1 未命中保持低
+        base["l1miss"] = rng.uniform(0.01, 0.05)   # LLC/L1 未命中保持低
         base["llfrac"] = rng.uniform(0.03, 0.15)
     elif kind == "compress":      # 合法压缩:SIMD 高、访存中等,但 crypto 低
         base["crypto"] = rng.uniform(0.0, 0.04)
@@ -121,6 +131,19 @@ def _benign_profile(rng):
         base["mem_pi"] = rng.uniform(0.25, 0.5)
         base["l1miss"] = rng.uniform(0.03, 0.10)
         base["br_mis"] = rng.uniform(0.04, 0.12)   # 压缩分支较难预测
+    elif kind == "encbackup":
+        # 合法“加密备份/全盘加密初始化”:最难的混合干扰项 —— 同时具备加密 + 全盘
+        # 遍历,在“是否加密+遍历”这两个核心维度上与勒索**完全重叠**。
+        # 唯一区别在节奏:它是平稳长流(无 ramp 突发),靠差分/方差(节奏)而非
+        # 绝对水平来与勒索的突发脉冲区分。基线水平接近勒索加密期。
+        base["crypto"] = rng.uniform(0.12, 0.28)   # 与勒索加密期相当
+        base["ase"] = rng.uniform(0.08, 0.20)
+        base["l1miss"] = rng.uniform(0.10, 0.22)   # 全盘遍历 -> 缓存未命中高
+        base["l2frac"] = rng.uniform(0.3, 0.6)
+        base["llfrac"] = rng.uniform(0.25, 0.55)   # LLC 未命中也高
+        base["mem_pi"] = rng.uniform(0.3, 0.6)
+        base["st"] = rng.uniform(0.10, 0.22)       # 写密文
+        base["ipc"] = rng.uniform(1.0, 2.0)
     base["kind"] = kind
     return base
 
