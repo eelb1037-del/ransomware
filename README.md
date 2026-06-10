@@ -44,7 +44,9 @@ ransomware            # 标签 0 良性 / 1 勒索
 > 见 [docs/ransomware_platforms.md](docs/ransomware_platforms.md);
 > 主流勒索家族的行为与特征分析见 [docs/ransomware_families.md](docs/ransomware_families.md);
 > Apple/macOS 近 5 年勒索深度分析见
-> [docs/apple_ransomware_2021_2026.md](docs/apple_ransomware_2021_2026.md)。
+> [docs/apple_ransomware_2021_2026.md](docs/apple_ransomware_2021_2026.md);
+> ARM 平台近 5 年勒索深度分析见
+> [docs/arm_ransomware_2021_2026.md](docs/arm_ransomware_2021_2026.md)。
 
 ## 方法
 
