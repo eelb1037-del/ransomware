@@ -40,6 +40,8 @@ ransomware            # 标签 0 良性 / 1 勒索
 
 > 数据集**整体构成(良性 4 类 + 勒索)与训练/验证/测试切分**详见
 > [docs/dataset.md](docs/dataset.md)。
+> 三大平台(x86 Windows / ARM / Apple Silicon)勒索软件现状与 PMU 检测可迁移性
+> 见 [docs/ransomware_platforms.md](docs/ransomware_platforms.md)。
 
 ## 方法
 
