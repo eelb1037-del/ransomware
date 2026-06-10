@@ -42,7 +42,9 @@ ransomware            # 标签 0 良性 / 1 勒索
 > [docs/dataset.md](docs/dataset.md)。
 > 三大平台(x86 Windows / ARM / Apple Silicon)勒索软件现状与 PMU 检测可迁移性
 > 见 [docs/ransomware_platforms.md](docs/ransomware_platforms.md);
-> 主流勒索家族的行为与特征分析见 [docs/ransomware_families.md](docs/ransomware_families.md)。
+> 主流勒索家族的行为与特征分析见 [docs/ransomware_families.md](docs/ransomware_families.md);
+> Apple/macOS 近 5 年勒索深度分析见
+> [docs/apple_ransomware_2021_2026.md](docs/apple_ransomware_2021_2026.md)。
 
 ## 方法
 
